@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time-Grouped Photo Share</title>
+    <style>
+        /* CSS STYLING */
+        :root {
+            --primary: #4f46e5;
+            --bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --text: #1f2937;
+            --header-bg: #e0e7ff;
+            --header-text: #3730a3;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #6b7280;
+        }
+
+        /* Upload Area */
+        .upload-container {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 500px;
+            border: 2px dashed #d1d5db;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 30px;
+        }
+
+        .upload-container:hover {
+            border-color: var(--primary);
+            background-color: #eef2ff;
+        }
+
+        .upload-icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 15px;
+            cursor: pointer;
+        }
+
+        /* Gallery Grid */
+        .gallery {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 800px;
+            gap: 20px;
+        }
+
+        /* Group Header Styling */
+        .group-header {
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            align-self: flex-start;
+            margin-bottom: 10px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .photo-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+            aspect-ratio: 1;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .photo-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: rgba(255, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        /* Mobile Optimization */
+        @media (max-width: 600px) {
+            .upload-container {
+                padding: 20px;
+            }
+            h1 { font-size: 1.5rem; }
+            .group-header { font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Photo Share</h1>
+        <p>Photos will be grouped by upload time</p>
+    </header>
+
+    <!-- Upload Section -->
+    <div class="upload-container" onclick="document.getElementById('fileInput').click()">
+        <span class="upload-icon">📁</span>
+        <h3>Click to Upload</h3>
+        <p>Select photos from your device</p>
+        <input type="file" id="fileInput" multiple accept="image/*">
+        <div class="btn">Choose Files</div>
+    </div>
+
+    <!-- Gallery Section -->
+    <div class="gallery" id="gallery">
+        <!-- Photos will appear here grouped by time -->
+    </div>
+
+    <script>
+        // JAVASCRIPT LOGIC
+        const fileInput = document.getElementById('fileInput');
+        const gallery = document.getElementById('gallery');
+        let uploadedPhotos = [];
+
+        fileInput.addEventListener('change', function(e) {
+            const files = e.target.files;
+            const now = new Date();
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+
+                    reader.onload = function(event) {
+                        // Store photo data with timestamp
+                        uploadedPhotos.push({
+                            src: event.target.result,
+                            timestamp: now.getTime()
+                        });
+
+                        // Sort photos by newest first
+                        uploadedPhotos.sort((a, b) => b.timestamp - a.timestamp);
+
+                        renderGallery();
+                    }
+
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+
+        function renderGallery() {
+            gallery.innerHTML = ''; // Clear current gallery
+            
+            if (uploadedPhotos.length === 0) return;
+
+            let lastGroupTime = null;
+
+            uploadedPhotos.forEach((photo, index) => {
+                const dateObj = new Date(photo.timestamp);
+                const timeString = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const dateString = dateObj.toLocaleDateString();
+                
+                // Check if we need a new group header
+                // We group by Date + Time (e.g., "Oct 24, 10:10 PM")
+                const currentGroupKey = `${dateString} - ${timeString}`;
+
+                if (currentGroupKey !== lastGroupTime) {
+                    // Create Header
+                    const header = document.createElement('div');
+                    header.className = 'group-header';
+                    header.textContent = `Shared on ${currentGroupKey}`;
+                    gallery.appendChild(header);
+                    lastGroupTime = currentGroupKey;
+                }
+
+                // Create Photo Card
+                const div = document.createElement('div');
+                div.className = 'photo-card';
+                
+                div.innerHTML = `
+                    <img src="${photo.src}" alt="Uploaded Photo">
+                    <button class="delete-btn" onclick="deletePhoto(${index})">×</button>
+                `;
+
+                gallery.appendChild(div);
+            });
+        }
+
+        function deletePhoto(index) {
+            // Remove from array
+            uploadedPhotos.splice(index, 1);
+            // Re-render
+            renderGallery();
+        }
+    </script>
+
+</body>
+</html>
